@@ -1,26 +1,15 @@
-const Task = require("../models/Task");
 const router = require("express").Router();
-const { createTask, getTasks } = require("../controllers/taskController");
-const auth = require("../middleware/authMiddleware");
+const { auth, isAdmin } = require("../middleware/authMiddleware");
+const {
+  createTask,
+  getTasks,
+  updateTask,
+  deleteTask
+} = require("../controllers/taskController");
 
-router.put("/:id", auth, async (req, res) => {
-  const task = await Task.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
-  res.json(task);
-});
-router.post("/", auth, createTask);
+router.post("/", auth, isAdmin, createTask);
 router.get("/", auth, getTasks);
+router.put("/:id", auth, updateTask);
+router.delete("/:id", auth, isAdmin, deleteTask);
 
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    await Task.findByIdAndDelete(req.params.id);
-    res.json("Task deleted");
-  } catch (err) {
-    console.error(err);
-    res.status(500).json("Delete failed");
-  }
-});
 module.exports = router;

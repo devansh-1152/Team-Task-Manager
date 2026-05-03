@@ -1,31 +1,44 @@
 const Project = require("../models/Project");
+const User = require("../models/User");
 
-// CREATE PROJECT
 exports.createProject = async (req, res) => {
   try {
-    if (!req.body.name) {
-      return res.status(400).json("Project name is required");
-    }
-
     const project = await Project.create({
       name: req.body.name,
-      members: []   // keep this (important for future)
+      members: [req.user.id]
     });
-
-    res.status(201).json(project);
-
-  } catch (err) {
-    console.error("PROJECT ERROR:", err);
-    res.status(500).json("Error creating project");
+    res.json(project);
+  } catch (error) {
+    res.status(500).json("Server Error");
   }
 };
-// GET PROJECTS
+
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find().populate("members");
+    let projects;
+    if (req.user.role === 'admin') {
+      projects = await Project.find().populate("members", "name email");
+    } else {
+      projects = await Project.find({ members: req.user.id }).populate("members", "name email");
+    }
     res.json(projects);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json("Error fetching projects");
+  } catch (error) {
+    res.status(500).json("Server Error");
+  }
+};
+
+exports.addMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json("Project not found");
+    
+    if (!project.members.includes(userId)) {
+      project.members.push(userId);
+      await project.save();
+    }
+    res.json(project);
+  } catch (error) {
+    res.status(500).json("Server Error");
   }
 };
